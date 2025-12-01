@@ -1,176 +1,398 @@
-import { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
 import { MainLayout } from "@/components/templates/MainLayout";
-import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Spinner } from "@/components/atoms/Spinner";
-import { formatCurrency } from "@/utils/formatters";
-import { ArrowLeft, ShoppingCart, Minus, Plus, Package } from "lucide-react";
-import { Product } from "@/models/product";
-import { getProductById } from "@/services/productsService";
-import { useCart } from "@/hooks/useCart";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { FormField } from "@/components/molecules/FormField";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Package, Plus, Pencil, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
+import { getProducts, createProduct, updateProduct } from "@/services/productsService";
+import { Product, CreateProductPayload, UpdateProductPayload } from "@/models/product";
+import { formatCurrency } from "@/utils/formatters";
 
-export default function ProductDetailPage() {
-  const { id } = useParams<{ id: string }>();
-  const productId = id ? parseInt(id, 10) : null;
-  const navigate = useNavigate();
-  const [product, setProduct] = useState<Product | null>(null);
+export default function AdminProductsPage() {
+  const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [quantity, setQuantity] = useState(1);
-  const [message, setMessage] = useState("");
-  const { addItem } = useCart();
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [formData, setFormData] = useState({
+    name: "",
+    description: "",
+    price: "",
+    stock: "",
+  });
 
   useEffect(() => {
-    const fetchProduct = async () => {
-      if (!productId) return;
-      
-      setIsLoading(true);
-      try {
-        const data = await getProductById(productId);
-        setProduct(data);
-      } catch (err) {
-        console.error("Error fetching product:", err);
-        setError("No se pudo cargar el producto");
-      } finally {
-        setIsLoading(false);
+    loadProducts();
+  }, []);
+
+  const loadProducts = async () => {
+    setIsLoading(true);
+    try {
+      const data = await getProducts();
+      setProducts(data);
+
+      // Mostrar notificación si hay productos con stock bajo
+      const lowStockProducts = data.filter(p => p.stock <= 2);
+      if (lowStockProducts.length > 0) {
+        const productNames = lowStockProducts.map(p => p.name).join(", ");
+        toast.warning(
+            `Alerta: ${lowStockProducts.length} producto${lowStockProducts.length > 1 ? 's' : ''} con stock crítico`,
+            { description: productNames }
+        );
       }
-    };
-
-    fetchProduct();
-  }, [productId]);
-
-  const handleAddToCart = () => {
-    if (product) {
-      addItem(product, quantity, message || undefined);
-      toast.success(`${product.name} agregado al carrito`);
-      navigate("/carrito");
+    } catch (error) {
+      toast.error("Error al cargar productos");
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  if (isLoading) {
-    return (
-      <MainLayout>
-        <div className="container mx-auto px-4 py-20 flex justify-center">
-          <Spinner size={40} />
-        </div>
-      </MainLayout>
-    );
-  }
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
 
-  if (error || !product) {
-    return (
-      <MainLayout>
-        <div className="container mx-auto px-4 py-20">
-          <Card className="max-w-2xl mx-auto p-12 text-center">
-            <h1 className="text-2xl font-bold text-destructive mb-4">
-              {error || "Producto no encontrado"}
-            </h1>
-            <Button onClick={() => navigate("/productos")}>
-              Volver a Productos
-            </Button>
-          </Card>
-        </div>
-      </MainLayout>
-    );
-  }
+    try {
+      const payload: CreateProductPayload = {
+        name: formData.name,
+        description: formData.description,
+        price: parseFloat(formData.price),
+        stock: parseInt(formData.stock),
+      };
+
+      await createProduct(payload);
+      toast.success("Producto creado exitosamente");
+      setIsDialogOpen(false);
+      setFormData({ name: "", description: "", price: "", stock: "" });
+      loadProducts();
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || error.message || "Error al crear producto";
+
+      if (errorMessage.includes("restricción única") || errorMessage.includes("constraint") || errorMessage.includes("Duplicate")) {
+        toast.error("Ya existe un producto con ese nombre. Por favor, usa un nombre diferente.");
+      } else if (errorMessage.includes("ORA-00001")) {
+        toast.error("Error: Producto duplicado o problema con la base de datos. Contacta al administrador del sistema.");
+      } else {
+        toast.error(errorMessage);
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleEdit = (product: Product) => {
+    setEditingProduct(product);
+    setIsEditDialogOpen(true);
+  };
+
+  const handleUpdateSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingProduct) return;
+
+    setIsSubmitting(true);
+
+    try {
+      const payload: UpdateProductPayload = {
+        name: editingProduct.name,
+        description: editingProduct.description,
+        price: editingProduct.price,
+        stock: editingProduct.stock,
+      };
+
+      await updateProduct(editingProduct.id, payload);
+      toast.success("Producto actualizado exitosamente");
+      setIsEditDialogOpen(false);
+      setEditingProduct(null);
+      loadProducts();
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || error.message || "Error al actualizar producto";
+
+      if (errorMessage.includes("restricción única") || errorMessage.includes("constraint") || errorMessage.includes("Duplicate")) {
+        toast.error("Ya existe un producto con ese nombre. Por favor, usa un nombre diferente.");
+      } else {
+        toast.error(errorMessage);
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
-    <MainLayout>
-      <div className="container mx-auto px-4 py-12">
-        <Button
-          variant="ghost"
-          className="mb-6"
-          onClick={() => navigate("/productos")}
-        >
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Volver a Productos
-        </Button>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-          {/* Product Image Placeholder */}
-          <div className="aspect-square rounded-lg overflow-hidden bg-gradient-subtle flex items-center justify-center">
-            <Package className="w-32 h-32 text-muted-foreground/30" />
-          </div>
-
-          {/* Product Details */}
-          <div className="space-y-6">
+      <MainLayout>
+        <div className="container mx-auto px-4 py-12">
+          <div className="flex items-center justify-between mb-8">
             <div>
-              <h1 className="text-4xl font-display text-primary mb-4">
-                {product.name}
+              <h1 className="text-4xl font-display text-primary mb-2">
+                Gestión de Productos
               </h1>
-              
-              <p className="text-muted-foreground text-lg leading-relaxed">
-                {product.description || "Delicioso producto de nuestra pastelería"}
+              <p className="text-muted-foreground">
+                Administra el catálogo de productos
               </p>
             </div>
 
-            <div className="text-4xl font-bold text-primary">
-              {formatCurrency(product.price)}
-            </div>
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+              <DialogTrigger asChild>
+                <Button>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Crear Producto
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Crear Nuevo Producto</DialogTitle>
+                  <DialogDescription>
+                    Completa los datos del nuevo producto
+                  </DialogDescription>
+                </DialogHeader>
 
-            <Card className="p-6 space-y-4 bg-muted/30">
-              <div>
-                <label className="text-sm font-medium mb-2 block">
-                  Cantidad
-                </label>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                  >
-                    <Minus className="h-4 w-4" />
-                  </Button>
-                  <Input
-                    type="number"
-                    min="1"
-                    value={quantity}
-                    onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
-                    className="w-20 text-center"
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  <FormField
+                      label="Nombre del producto"
+                      required
+                      inputProps={{
+                        name: "name",
+                        value: formData.name,
+                        onChange: (e) => setFormData({ ...formData, name: e.target.value }),
+                        required: true,
+                      }}
                   />
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => setQuantity(quantity + 1)}
-                  >
-                    <Plus className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
 
-              <div>
-                <label className="text-sm font-medium mb-2 block">
-                  Mensaje para la torta (opcional)
-                </label>
-                <Textarea
-                  placeholder="Ej: Feliz Cumpleaños María"
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  maxLength={50}
-                  rows={2}
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  Máximo 50 caracteres
-                </p>
-              </div>
+                  <FormField
+                      label="Descripción"
+                      required
+                      multiline
+                      textareaProps={{
+                        name: "description",
+                        value: formData.description,
+                        onChange: (e) => setFormData({ ...formData, description: e.target.value }),
+                        required: true,
+                        rows: 3,
+                      }}
+                  />
 
-              <Button
-                variant="hero"
-                size="lg"
-                className="w-full"
-                onClick={handleAddToCart}
-              >
-                <ShoppingCart className="mr-2 h-5 w-5" />
-                Agregar al Carrito
-              </Button>
-            </Card>
+                  <FormField
+                      label="Precio"
+                      type="number"
+                      required
+                      inputProps={{
+                        name: "price",
+                        value: formData.price,
+                        onChange: (e) => setFormData({ ...formData, price: e.target.value }),
+                        required: true,
+                        min: "0",
+                        step: "0.01",
+                      }}
+                  />
+
+                  <FormField
+                      label="Stock"
+                      type="number"
+                      required
+                      inputProps={{
+                        name: "stock",
+                        value: formData.stock,
+                        onChange: (e) => setFormData({ ...formData, stock: e.target.value }),
+                        required: true,
+                        min: "0",
+                        step: "1",
+                      }}
+                  />
+
+                  <div className="flex justify-end gap-2 pt-4">
+                    <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setIsDialogOpen(false)}
+                        disabled={isSubmitting}
+                    >
+                      Cancelar
+                    </Button>
+                    <Button type="submit" disabled={isSubmitting}>
+                      {isSubmitting ? "Creando..." : "Crear Producto"}
+                    </Button>
+                  </div>
+                </form>
+              </DialogContent>
+            </Dialog>
           </div>
+
+          {/* Alert for low stock products */}
+          {products.filter(p => p.stock <= 2).length > 0 && (
+              <Alert variant="destructive" className="mb-6">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertTitle>Stock Crítico</AlertTitle>
+                <AlertDescription>
+                  {products.filter(p => p.stock <= 2).length} producto{products.filter(p => p.stock <= 2).length > 1 ? 's tienen' : ' tiene'} stock igual o inferior a 2 unidades:
+                  <ul className="mt-2 list-disc list-inside">
+                    {products.filter(p => p.stock <= 2).map(p => (
+                        <li key={p.id}>
+                          <span className="font-medium">{p.name}</span> - Stock: {p.stock}
+                        </li>
+                    ))}
+                  </ul>
+                </AlertDescription>
+              </Alert>
+          )}
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Package className="w-5 h-5" />
+                Catálogo de Productos
+              </CardTitle>
+              <CardDescription>
+                {products.length} producto{products.length !== 1 ? "s" : ""} registrado{products.length !== 1 ? "s" : ""}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {isLoading ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    Cargando productos...
+                  </div>
+              ) : products.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    No hay productos registrados
+                  </div>
+              ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>ID</TableHead>
+                        <TableHead>Nombre</TableHead>
+                        <TableHead>Descripción</TableHead>
+                        <TableHead className="text-right">Precio</TableHead>
+                        <TableHead className="text-center">Stock</TableHead>
+                        <TableHead>Acciones</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {products.map((product) => (
+                          <TableRow key={product.id}>
+                            <TableCell className="font-medium">{product.id}</TableCell>
+                            <TableCell>{product.name}</TableCell>
+                            <TableCell className="max-w-md truncate">
+                              {product.description}
+                            </TableCell>
+                            <TableCell className="text-right font-semibold">
+                              {formatCurrency(product.price)}
+                            </TableCell>
+                            <TableCell className="text-center">
+                        <span className={`px-2 py-1 rounded-md text-xs font-medium ${
+                            product.stock === 0
+                                ? 'bg-destructive/10 text-destructive'
+                                : product.stock < 10
+                                    ? 'bg-yellow-500/10 text-yellow-700 dark:text-yellow-500'
+                                    : 'bg-green-500/10 text-green-700 dark:text-green-500'
+                        }`}>
+                          {product.stock}
+                        </span>
+                            </TableCell>
+                            <TableCell>
+                              <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleEdit(product)}
+                              >
+                                <Pencil className="w-4 h-4" />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Edit Product Dialog */}
+          <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle>Editar Producto</DialogTitle>
+                <DialogDescription>
+                  Actualiza los datos del producto
+                </DialogDescription>
+              </DialogHeader>
+
+              {editingProduct && (
+                  <form onSubmit={handleUpdateSubmit} className="space-y-4">
+                    <FormField
+                        label="Nombre del producto"
+                        required
+                        inputProps={{
+                          name: "name",
+                          value: editingProduct.name,
+                          onChange: (e) => setEditingProduct({ ...editingProduct, name: e.target.value }),
+                          required: true,
+                        }}
+                    />
+
+                    <FormField
+                        label="Descripción"
+                        required
+                        multiline
+                        textareaProps={{
+                          name: "description",
+                          value: editingProduct.description,
+                          onChange: (e) => setEditingProduct({ ...editingProduct, description: e.target.value }),
+                          required: true,
+                          rows: 3,
+                        }}
+                    />
+
+                    <FormField
+                        label="Precio"
+                        type="number"
+                        required
+                        inputProps={{
+                          name: "price",
+                          value: editingProduct.price.toString(),
+                          onChange: (e) => setEditingProduct({ ...editingProduct, price: parseFloat(e.target.value) }),
+                          required: true,
+                          min: "0",
+                          step: "0.01",
+                        }}
+                    />
+
+                    <FormField
+                        label="Stock"
+                        type="number"
+                        required
+                        inputProps={{
+                          name: "stock",
+                          value: editingProduct.stock.toString(),
+                          onChange: (e) => setEditingProduct({ ...editingProduct, stock: parseInt(e.target.value) }),
+                          required: true,
+                          min: "0",
+                          step: "1",
+                        }}
+                    />
+
+                    <div className="flex justify-end gap-2 pt-4">
+                      <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => {
+                            setIsEditDialogOpen(false);
+                            setEditingProduct(null);
+                          }}
+                          disabled={isSubmitting}
+                      >
+                        Cancelar
+                      </Button>
+                      <Button type="submit" disabled={isSubmitting}>
+                        {isSubmitting ? "Guardando..." : "Guardar Cambios"}
+                      </Button>
+                    </div>
+                  </form>
+              )}
+            </DialogContent>
+          </Dialog>
         </div>
-      </div>
-    </MainLayout>
+      </MainLayout>
   );
 }

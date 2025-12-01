@@ -3,6 +3,7 @@ export interface Product {
   name: string;
   description: string;
   price: number;
+  stock: number;
 }
 
 export interface ProductFilters {
@@ -13,6 +14,7 @@ export interface CreateProductPayload {
   name: string;
   description: string;
   price: number;
+  stock: number;
 }
 
 export interface UpdateProductPayload extends Partial<CreateProductPayload> {}

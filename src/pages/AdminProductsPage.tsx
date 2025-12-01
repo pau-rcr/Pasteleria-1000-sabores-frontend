@@ -5,7 +5,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { FormField } from "@/components/molecules/FormField";
-import { Package, Plus, Pencil } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Package, Plus, Pencil, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { getProducts, createProduct, updateProduct } from "@/services/productsService";
 import { Product, CreateProductPayload, UpdateProductPayload } from "@/models/product";
@@ -22,6 +23,7 @@ export default function AdminProductsPage() {
         name: "",
         description: "",
         price: "",
+        stock: "",
     });
 
     useEffect(() => {
@@ -33,6 +35,16 @@ export default function AdminProductsPage() {
         try {
             const data = await getProducts();
             setProducts(data);
+
+            // Mostrar notificación si hay productos con stock bajo
+            const lowStockProducts = data.filter(p => p.stock <= 2);
+            if (lowStockProducts.length > 0) {
+                const productNames = lowStockProducts.map(p => p.name).join(", ");
+                toast.warning(
+                    `Alerta: ${lowStockProducts.length} producto${lowStockProducts.length > 1 ? 's' : ''} con stock crítico`,
+                    { description: productNames }
+                );
+            }
         } catch (error) {
             toast.error("Error al cargar productos");
         } finally {
@@ -49,12 +61,13 @@ export default function AdminProductsPage() {
                 name: formData.name,
                 description: formData.description,
                 price: parseFloat(formData.price),
+                stock: parseInt(formData.stock),
             };
 
             await createProduct(payload);
             toast.success("Producto creado exitosamente");
             setIsDialogOpen(false);
-            setFormData({ name: "", description: "", price: "" });
+            setFormData({ name: "", description: "", price: "", stock: "" });
             loadProducts();
         } catch (error: any) {
             const errorMessage = error.response?.data?.message || error.message || "Error al crear producto";
@@ -87,6 +100,7 @@ export default function AdminProductsPage() {
                 name: editingProduct.name,
                 description: editingProduct.description,
                 price: editingProduct.price,
+                stock: editingProduct.stock,
             };
 
             await updateProduct(editingProduct.id, payload);
@@ -174,6 +188,20 @@ export default function AdminProductsPage() {
                                     }}
                                 />
 
+                                <FormField
+                                    label="Stock"
+                                    type="number"
+                                    required
+                                    inputProps={{
+                                        name: "stock",
+                                        value: formData.stock,
+                                        onChange: (e) => setFormData({ ...formData, stock: e.target.value }),
+                                        required: true,
+                                        min: "0",
+                                        step: "1",
+                                    }}
+                                />
+
                                 <div className="flex justify-end gap-2 pt-4">
                                     <Button
                                         type="button"
@@ -191,6 +219,24 @@ export default function AdminProductsPage() {
                         </DialogContent>
                     </Dialog>
                 </div>
+
+                {/* Alert for low stock products */}
+                {products.filter(p => p.stock <= 2).length > 0 && (
+                    <Alert variant="destructive" className="mb-6">
+                        <AlertTriangle className="h-4 w-4" />
+                        <AlertTitle>Stock Crítico</AlertTitle>
+                        <AlertDescription>
+                            {products.filter(p => p.stock <= 2).length} producto{products.filter(p => p.stock <= 2).length > 1 ? 's tienen' : ' tiene'} stock igual o inferior a 2 unidades:
+                            <ul className="mt-2 list-disc list-inside">
+                                {products.filter(p => p.stock <= 2).map(p => (
+                                    <li key={p.id}>
+                                        <span className="font-medium">{p.name}</span> - Stock: {p.stock}
+                                    </li>
+                                ))}
+                            </ul>
+                        </AlertDescription>
+                    </Alert>
+                )}
 
                 <Card>
                     <CardHeader>
@@ -219,6 +265,7 @@ export default function AdminProductsPage() {
                                         <TableHead>Nombre</TableHead>
                                         <TableHead>Descripción</TableHead>
                                         <TableHead className="text-right">Precio</TableHead>
+                                        <TableHead className="text-center">Stock</TableHead>
                                         <TableHead>Acciones</TableHead>
                                     </TableRow>
                                 </TableHeader>
@@ -232,6 +279,17 @@ export default function AdminProductsPage() {
                                             </TableCell>
                                             <TableCell className="text-right font-semibold">
                                                 {formatCurrency(product.price)}
+                                            </TableCell>
+                                            <TableCell className="text-center">
+                        <span className={`px-2 py-1 rounded-md text-xs font-medium ${
+                            product.stock === 0
+                                ? 'bg-destructive/10 text-destructive'
+                                : product.stock < 10
+                                    ? 'bg-yellow-500/10 text-yellow-700 dark:text-yellow-500'
+                                    : 'bg-green-500/10 text-green-700 dark:text-green-500'
+                        }`}>
+                          {product.stock}
+                        </span>
                                             </TableCell>
                                             <TableCell>
                                                 <Button
@@ -297,6 +355,20 @@ export default function AdminProductsPage() {
                                         required: true,
                                         min: "0",
                                         step: "0.01",
+                                    }}
+                                />
+
+                                <FormField
+                                    label="Stock"
+                                    type="number"
+                                    required
+                                    inputProps={{
+                                        name: "stock",
+                                        value: editingProduct.stock.toString(),
+                                        onChange: (e) => setEditingProduct({ ...editingProduct, stock: parseInt(e.target.value) }),
+                                        required: true,
+                                        min: "0",
+                                        step: "1",
                                     }}
                                 />
 
