@@ -10,10 +10,9 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Users, Plus } from "lucide-react";
 import { toast } from "sonner";
-import { register } from "@/services/authService";
-import { getUsers } from "@/services/usersService";
-import { RegisterPayload, User } from "@/models/user";
-import { UserRole } from "@/config/roles";
+import { getUsers, createUser } from "@/services/usersService";
+import { CreateUserPayload, User } from "@/models/user";
+import { UserRole, ROLES } from "@/config/roles";
 import { formatDate } from "@/utils/date";
 
 export default function AdminUsersPage() {
@@ -51,15 +50,16 @@ export default function AdminUsersPage() {
         setIsSubmitting(true);
 
         try {
-            const payload: RegisterPayload = {
+            const payload: CreateUserPayload = {
                 name: formData.name,
                 email: formData.email,
                 password: formData.password,
                 dateOfBirth: formData.dateOfBirth,
                 isDuocStudent: formData.isDuocStudent,
+                role: formData.role,
             };
 
-            await register(payload);
+            await createUser(payload);
             toast.success("Usuario creado exitosamente");
             setIsDialogOpen(false);
             setFormData({
@@ -154,6 +154,25 @@ export default function AdminUsersPage() {
                                         required: true,
                                     }}
                                 />
+
+                                <div className="space-y-2">
+                                    <Label htmlFor="role">
+                                        Rol <span className="text-destructive">*</span>
+                                    </Label>
+                                    <Select
+                                        value={formData.role}
+                                        onValueChange={(value) => setFormData({ ...formData, role: value as UserRole })}
+                                    >
+                                        <SelectTrigger id="role">
+                                            <SelectValue placeholder="Selecciona un rol" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="CLIENT">{ROLES.CLIENT}</SelectItem>
+                                            <SelectItem value="SELLER">{ROLES.SELLER}</SelectItem>
+                                            <SelectItem value="ADMIN">{ROLES.ADMIN}</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
 
                                 <div className="flex items-center space-x-2">
                                     <Checkbox
