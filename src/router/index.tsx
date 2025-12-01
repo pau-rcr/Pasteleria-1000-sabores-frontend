@@ -15,7 +15,10 @@ import AboutUsPage from "@/pages/AboutUsPage";
 import ContactPage from "@/pages/ContactPage";
 import OrdersPage from "@/pages/OrdersPage";
 import AdminOrdersPage from "@/pages/AdminOrdersPage";
+import AdminUsersPage from "@/pages/AdminUsersPage";
+import AdminProductsPage from "@/pages/AdminProductsPage";
 import SellerOrdersPage from "@/pages/SellerOrdersPage";
+import SellerProductsPage from "@/pages/SellerProductsPage";
 import NotFound from "@/pages/NotFound";
 
 export function AppRoutes() {
@@ -53,6 +56,22 @@ export function AppRoutes() {
 
             {/* Protected Admin Routes */}
             <Route
+                path="/admin/usuarios"
+                element={
+                    <ProtectedRoute allowedRoles={["ADMIN"]}>
+                        <AdminUsersPage />
+                    </ProtectedRoute>
+                }
+            />
+            <Route
+                path="/admin/productos"
+                element={
+                    <ProtectedRoute allowedRoles={["ADMIN"]}>
+                        <AdminProductsPage />
+                    </ProtectedRoute>
+                }
+            />
+            <Route
                 path="/admin/pedidos"
                 element={
                     <ProtectedRoute allowedRoles={["ADMIN"]}>
@@ -62,6 +81,14 @@ export function AppRoutes() {
             />
 
             {/* Protected Seller Routes */}
+            <Route
+                path="/vendedor/productos"
+                element={
+                    <ProtectedRoute allowedRoles={["SELLER"]}>
+                        <SellerProductsPage />
+                    </ProtectedRoute>
+                }
+            />
             <Route
                 path="/vendedor/pedidos"
                 element={

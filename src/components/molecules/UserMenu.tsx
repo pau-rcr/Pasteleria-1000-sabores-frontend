@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { User as UserIcon, Package, LogOut } from "lucide-react";
+import { User as UserIcon, Package, LogOut, Users, ShoppingBag } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { ROLES } from "@/config/roles";
 
@@ -28,12 +28,6 @@ export function UserMenu({ user, onLogout }: UserMenuProps) {
         .join("")
         .toUpperCase()
         .slice(0, 2);
-  };
-
-  const getDashboardPath = () => {
-    if (user.role === "ADMIN") return "/admin/pedidos";
-    if (user.role === "SELLER") return "/vendedor/pedidos";
-    return "/perfil";
   };
 
   return (
@@ -57,25 +51,47 @@ export function UserMenu({ user, onLogout }: UserMenuProps) {
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
 
-          <DropdownMenuItem onClick={() => navigate(getDashboardPath())}>
-            {user.role === "CLIENT" ? (
-                <>
+          {user.role === "CLIENT" && (
+              <>
+                <DropdownMenuItem onClick={() => navigate("/perfil")}>
                   <UserIcon className="mr-2 h-4 w-4" />
                   Mi Perfil
-                </>
-            ) : (
-                <>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate("/mis-pedidos")}>
+                  <Package className="mr-2 h-4 w-4" />
+                  Mis Pedidos
+                </DropdownMenuItem>
+              </>
+          )}
+
+          {user.role === "SELLER" && (
+              <>
+                <DropdownMenuItem onClick={() => navigate("/vendedor/productos")}>
+                  <ShoppingBag className="mr-2 h-4 w-4" />
+                  Productos
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate("/vendedor/pedidos")}>
                   <Package className="mr-2 h-4 w-4" />
                   Pedidos
-                </>
-            )}
-          </DropdownMenuItem>
+                </DropdownMenuItem>
+              </>
+          )}
 
-          {user.role === "CLIENT" && (
-              <DropdownMenuItem onClick={() => navigate("/mis-pedidos")}>
-                <Package className="mr-2 h-4 w-4" />
-                Mis Pedidos
-              </DropdownMenuItem>
+          {user.role === "ADMIN" && (
+              <>
+                <DropdownMenuItem onClick={() => navigate("/admin/usuarios")}>
+                  <Users className="mr-2 h-4 w-4" />
+                  Usuarios
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate("/admin/productos")}>
+                  <ShoppingBag className="mr-2 h-4 w-4" />
+                  Productos
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate("/admin/pedidos")}>
+                  <Package className="mr-2 h-4 w-4" />
+                  Pedidos
+                </DropdownMenuItem>
+              </>
           )}
 
           <DropdownMenuSeparator />

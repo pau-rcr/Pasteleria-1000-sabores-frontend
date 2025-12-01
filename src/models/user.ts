@@ -5,7 +5,7 @@ export interface User {
   name: string;
   email: string;
   role: UserRole;
-  dateOfBirth: string; // ISO string (YYYY-MM-DD)
+  dateOfBirth: string;
   isDuocStudent: boolean;
   hasFelices50: boolean;
 }
@@ -14,13 +14,23 @@ export interface RegisterPayload {
   name: string;
   email: string;
   password: string;
-  dateOfBirth: string; // YYYY-MM-DD format
+  dateOfBirth: string;
   isDuocStudent: boolean;
-  code?: string; // promo code field name matches backend
+  code?: string;
 }
 
 export interface UpdateUserPayload {
   name?: string;
   dateOfBirth?: string;
   isDuocStudent?: boolean;
+}
+
+export interface CreateUserPayload {
+  name: string;
+  email: string;
+  password: string;
+  dateOfBirth: string;
+  isDuocStudent: boolean;
+  role: UserRole;
+  code?: string;
 }

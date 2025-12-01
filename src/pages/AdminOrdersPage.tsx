@@ -19,7 +19,6 @@ import {
 } from "@/components/ui/table";
 
 const getStatusBadge = (status: OrderStatus) => {
-    // @ts-ignore
     const variants: Record<OrderStatus, { label: string; variant: "default" | "secondary" | "destructive" }> = {
         PENDING: { label: "Pendiente", variant: "secondary" },
         PAID: { label: "Pagado", variant: "default" },
