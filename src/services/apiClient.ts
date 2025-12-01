@@ -1,4 +1,4 @@
-import axios from "axios";
+import axios, { AxiosRequestConfig, AxiosError } from "axios";
 import { API_BASE_URL, LOCAL_STORAGE_KEYS } from "@/config/constants";
 
 const api = axios.create({
@@ -8,7 +8,6 @@ const api = axios.create({
   },
 });
 
-// Create separate instance for /api/v1 endpoints
 export const apiV1 = axios.create({
   baseURL: `${API_BASE_URL}/api/v1`,
   headers: {
@@ -16,11 +15,14 @@ export const apiV1 = axios.create({
   },
 });
 
-// Request interceptor to add auth token (for both instances)
-const authInterceptor = (config: any) => {
+// 🔐 Interceptor de request: agrega Authorization si hay token
+const authInterceptor = (config: AxiosRequestConfig) => {
   const token = localStorage.getItem(LOCAL_STORAGE_KEYS.AUTH_TOKEN);
-  if (token && config.headers) {
-    config.headers.Authorization = `Bearer ${token}`;
+  if (token) {
+    if (!config.headers) {
+      config.headers = {};
+    }
+    (config.headers as any).Authorization = `Bearer ${token}`;
   }
   return config;
 };
@@ -28,18 +30,37 @@ const authInterceptor = (config: any) => {
 api.interceptors.request.use(authInterceptor);
 apiV1.interceptors.request.use(authInterceptor);
 
-// Response interceptor to handle errors (for both instances)
-const errorInterceptor = (error: any) => {
-  if (error.response?.status === 401) {
-    // Clear auth data on unauthorized
-    localStorage.removeItem(LOCAL_STORAGE_KEYS.AUTH_TOKEN);
-    localStorage.removeItem(LOCAL_STORAGE_KEYS.AUTH_USER);
-    
-    // Redirect to login if not already there
-    if (window.location.pathname !== "/login") {
-      window.location.href = "/login?expired=true";
-    }
+// 🚨 Interceptor de respuesta: solo expira sesión en ciertos casos
+const errorInterceptor = (error: AxiosError) => {
+  const status = error.response?.status;
+  const url = error.config?.url || "";
+  const token = localStorage.getItem(LOCAL_STORAGE_KEYS.AUTH_TOKEN);
+
+  // Si no es 401/403 o no hay token, NO es "sesión expirada"
+  if (!(status === 401 || status === 403) || !token) {
+    return Promise.reject(error);
   }
+
+  // No tratar estos endpoints como "sesión expirada"
+  const isAuthEndpoint =
+      url.includes("/auth/login") || url.includes("/auth/register");
+  const isBlogEndpoint = url.includes("/blogs");
+  const isOrdersEndpoint = url.includes("/orders");
+
+
+  if (isAuthEndpoint || isBlogEndpoint || isOrdersEndpoint) {
+    // Deja que el componente maneje el error (credenciales malas o blog sin backend)
+    return Promise.reject(error);
+  }
+
+  // 👉 Aquí sí: token existente + 401 en algo protegido real = sesión expirada
+  localStorage.removeItem(LOCAL_STORAGE_KEYS.AUTH_TOKEN);
+  localStorage.removeItem(LOCAL_STORAGE_KEYS.AUTH_USER);
+
+  if (window.location.pathname !== "/login") {
+    window.location.href = "/login?expired=true";
+  }
+
   return Promise.reject(error);
 };
 

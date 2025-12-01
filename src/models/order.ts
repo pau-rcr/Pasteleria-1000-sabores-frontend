@@ -23,33 +23,65 @@ export interface DiscountDetails {
   amountBirthday: number;
 }
 
-export type OrderStatus = "PENDING" | "CONFIRMED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED";
+export type OrderStatus = "PENDING" | "PAID" | "CANCELED";
 
+// Backend response structure
+export interface BackendOrderItem {
+  id: number;
+  product: Product;
+  quantity: number;
+  unitPrice: number;
+  totalPrice: number;
+}
+
+export interface BackendOrder {
+  id: number;
+  user: {
+    id: number;
+    name: string;
+    email: string;
+  };
+  totalAmount: number;
+  discountAmount: number;
+  finalAmount: number;
+  status: string;
+  createdAt: string;
+  items: BackendOrderItem[];
+}
+
+// Frontend order structure (adapted from backend)
 export interface OrderItem {
   productId: number;
   productName: string;
   quantity: number;
   price: number;
-  messageForCake?: string;
+  totalPrice: number;
 }
 
 export interface Order {
   id: number;
   userId: number;
+  userName?: string;
+  userEmail?: string;
   items: OrderItem[];
   subtotal: number;
   discounts: number;
   total: number;
-  discountDetails: DiscountDetails;
   status: OrderStatus;
   createdAt: string;
-  updatedAt: string;
+}
+
+// Payload for creating orders
+export interface CreateOrderItemRequest {
+  productId: number;
+  quantity: number;
+  unitPrice: number;
+  totalPrice: number;
 }
 
 export interface CreateOrderPayload {
-  items: CartItem[];
-  subtotal: number;
-  discounts: number;
-  total: number;
-  discountDetails: DiscountDetails;
+  items: CreateOrderItemRequest[];
+  totalAmount: number;
+  discountAmount: number;
+  finalAmount: number;
 }

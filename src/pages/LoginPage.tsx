@@ -15,6 +15,7 @@ export default function LoginPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const expired = searchParams.get("expired");
+  const registered = searchParams.get("registered");
 
   const validate = () => {
     const newErrors: Record<string, string> = {};
@@ -35,7 +36,6 @@ export default function LoginPage() {
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-
     if (!validate()) return;
 
     setIsSubmitting(true);
@@ -47,8 +47,8 @@ export default function LoginPage() {
     } catch (error: any) {
       setErrors({
         submit:
-          error.response?.data?.message ||
-          "Error al iniciar sesión. Verifica tus credenciales.",
+            error?.response?.data?.message ||
+            "Error al iniciar sesión. Verifica tus credenciales.",
       });
     } finally {
       setIsSubmitting(false);
@@ -56,74 +56,87 @@ export default function LoginPage() {
   };
 
   return (
-    <AuthLayout>
-      <div className="space-y-6">
-        <div className="space-y-2">
-          <h1 className="text-3xl font-display text-primary">Bienvenido</h1>
-          <p className="text-muted-foreground">
-            Ingresa a tu cuenta para acceder a tus beneficios
-          </p>
+      <AuthLayout>
+        <div className="space-y-6">
+          <div className="space-y-2">
+            <h1 className="text-3xl font-display text-primary">Bienvenido</h1>
+            <p className="text-muted-foreground">
+              Ingresa a tu cuenta para acceder a tus beneficios
+            </p>
+          </div>
+
+          {registered && (
+              <Alert className="border-green-500 bg-green-50 text-green-800">
+                <AlertDescription>
+                  ¡Registro exitoso! Ahora puedes iniciar sesión con tu email y
+                  contraseña.
+                </AlertDescription>
+              </Alert>
+          )}
+
+          {expired && (
+              <Alert variant="destructive">
+                <AlertDescription>
+                  Tu sesión ha expirado. Por favor inicia sesión nuevamente.
+                </AlertDescription>
+              </Alert>
+          )}
+
+          {errors.submit && (
+              <Alert variant="destructive">
+                <AlertDescription>{errors.submit}</AlertDescription>
+              </Alert>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <FormField
+                label="Email"
+                type="email"
+                required
+                error={errors.email}
+                inputProps={{
+                  name: "email",
+                  value: formData.email,
+                  onChange: (e) =>
+                      setFormData({ ...formData, email: e.target.value }),
+                  placeholder: "tu@email.com",
+                }}
+            />
+
+            <FormField
+                label="Contraseña"
+                type="password"
+                required
+                error={errors.password}
+                inputProps={{
+                  name: "password",
+                  value: formData.password,
+                  onChange: (e) =>
+                      setFormData({ ...formData, password: e.target.value }),
+                  placeholder: "••••••••",
+                }}
+            />
+
+            <Button
+                type="submit"
+                variant="hero"
+                className="w-full"
+                disabled={isSubmitting}
+            >
+              {isSubmitting ? "Ingresando..." : "Iniciar Sesión"}
+            </Button>
+          </form>
+
+          <div className="text-center text-sm">
+            <span className="text-muted-foreground">¿No tienes cuenta? </span>
+            <button
+                onClick={() => navigate("/registro")}
+                className="text-primary font-medium hover:underline"
+            >
+              Regístrate aquí
+            </button>
+          </div>
         </div>
-
-        {expired && (
-          <Alert variant="destructive">
-            <AlertDescription>Tu sesión ha expirado. Por favor inicia sesión nuevamente.</AlertDescription>
-          </Alert>
-        )}
-
-        {errors.submit && (
-          <Alert variant="destructive">
-            <AlertDescription>{errors.submit}</AlertDescription>
-          </Alert>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <FormField
-            label="Email"
-            type="email"
-            required
-            error={errors.email}
-            inputProps={{
-              name: "email",
-              value: formData.email,
-              onChange: (e) => setFormData({ ...formData, email: e.target.value }),
-              placeholder: "tu@email.com",
-            }}
-          />
-
-          <FormField
-            label="Contraseña"
-            type="password"
-            required
-            error={errors.password}
-            inputProps={{
-              name: "password",
-              value: formData.password,
-              onChange: (e) => setFormData({ ...formData, password: e.target.value }),
-              placeholder: "••••••••",
-            }}
-          />
-
-          <Button
-            type="submit"
-            variant="hero"
-            className="w-full"
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? "Ingresando..." : "Iniciar Sesión"}
-          </Button>
-        </form>
-
-        <div className="text-center text-sm">
-          <span className="text-muted-foreground">¿No tienes cuenta? </span>
-          <button
-            onClick={() => navigate("/registro")}
-            className="text-primary font-medium hover:underline"
-          >
-            Regístrate aquí
-          </button>
-        </div>
-      </div>
-    </AuthLayout>
+      </AuthLayout>
   );
 }

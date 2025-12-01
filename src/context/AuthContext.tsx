@@ -1,6 +1,6 @@
 import React, { createContext, useReducer, useEffect, ReactNode } from "react";
 import { User, RegisterPayload } from "@/models/user";
-import { AuthState } from "@/models/auth";
+import { AuthState, LoginResponse } from "@/models/auth";
 import { LOCAL_STORAGE_KEYS } from "@/config/constants";
 import * as authService from "@/services/authService";
 
@@ -14,9 +14,9 @@ interface AuthContextValue extends AuthState {
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 type AuthAction =
-  | { type: "SET_LOADING"; payload: boolean }
-  | { type: "SET_USER"; payload: { user: User; token: string } }
-  | { type: "LOGOUT" };
+    | { type: "SET_LOADING"; payload: boolean }
+    | { type: "SET_USER"; payload: { user: User; token: string } }
+    | { type: "LOGOUT" };
 
 function authReducer(state: AuthState, action: AuthAction): AuthState {
   switch (action.type) {
@@ -50,28 +50,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   });
 
   useEffect(() => {
-    // Load session from localStorage on mount
-    const loadSession = async () => {
-      try {
-        const token = localStorage.getItem(LOCAL_STORAGE_KEYS.AUTH_TOKEN);
-        const userStr = localStorage.getItem(LOCAL_STORAGE_KEYS.AUTH_USER);
+    const loadSession = () => {
+      const token = localStorage.getItem(LOCAL_STORAGE_KEYS.AUTH_TOKEN);
+      const userStr = localStorage.getItem(LOCAL_STORAGE_KEYS.AUTH_USER);
 
-        if (token && userStr) {
+      if (token && userStr) {
+        try {
           const user = JSON.parse(userStr) as User;
           dispatch({ type: "SET_USER", payload: { user, token } });
-          
-          // Optionally verify with backend
-          try {
-            const freshUser = await authService.getCurrentUser();
-            dispatch({ type: "SET_USER", payload: { user: freshUser, token } });
-            localStorage.setItem(LOCAL_STORAGE_KEYS.AUTH_USER, JSON.stringify(freshUser));
-          } catch {
-            // If verification fails, keep the cached user
-          }
+        } catch {
+          localStorage.removeItem(LOCAL_STORAGE_KEYS.AUTH_TOKEN);
+          localStorage.removeItem(LOCAL_STORAGE_KEYS.AUTH_USER);
         }
-      } catch (error) {
-        console.error("Failed to load session:", error);
-      } finally {
+      } else {
         dispatch({ type: "SET_LOADING", payload: false });
       }
     };
@@ -82,12 +73,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (email: string, password: string) => {
     dispatch({ type: "SET_LOADING", payload: true });
     try {
-      const response = await authService.login({ email, password });
-      
+      const response: LoginResponse = await authService.login({ email, password });
+
       localStorage.setItem(LOCAL_STORAGE_KEYS.AUTH_TOKEN, response.token);
       localStorage.setItem(LOCAL_STORAGE_KEYS.AUTH_USER, JSON.stringify(response.user));
-      
-      dispatch({ type: "SET_USER", payload: { user: response.user, token: response.token } });
+
+      dispatch({
+        type: "SET_USER",
+        payload: { user: response.user, token: response.token },
+      });
     } catch (error) {
       dispatch({ type: "SET_LOADING", payload: false });
       throw error;
@@ -97,14 +91,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const register = async (payload: RegisterPayload) => {
     dispatch({ type: "SET_LOADING", payload: true });
     try {
-      // Backend returns User directly (no JWT token yet)
-      const user = await authService.register(payload);
-      
-      // For now, store user without token (since backend doesn't provide JWT yet)
-      // TODO: Update when backend implements JWT authentication
-      localStorage.setItem(LOCAL_STORAGE_KEYS.AUTH_USER, JSON.stringify(user));
-      
-      dispatch({ type: "SET_USER", payload: { user, token: "" } });
+      await authService.register(payload);
+      dispatch({ type: "SET_LOADING", payload: false });
     } catch (error) {
       dispatch({ type: "SET_LOADING", payload: false });
       throw error;
@@ -118,32 +106,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const refreshSession = async () => {
+    const token = localStorage.getItem(LOCAL_STORAGE_KEYS.AUTH_TOKEN);
+    if (!token) return;
+
     try {
       const user = await authService.getCurrentUser();
-      const token = localStorage.getItem(LOCAL_STORAGE_KEYS.AUTH_TOKEN);
-      if (token) {
-        localStorage.setItem(LOCAL_STORAGE_KEYS.AUTH_USER, JSON.stringify(user));
-        dispatch({ type: "SET_USER", payload: { user, token } });
-      }
+      localStorage.setItem(LOCAL_STORAGE_KEYS.AUTH_USER, JSON.stringify(user));
+      dispatch({ type: "SET_USER", payload: { user, token } });
     } catch (error) {
       console.error("Failed to refresh session:", error);
-      logout();
     }
   };
 
-  return (
-    <AuthContext.Provider
-      value={{
-        ...state,
-        login,
-        register,
-        logout,
-        refreshSession,
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
-  );
+  const value: AuthContextValue = {
+    ...state,
+    login,
+    register,
+    logout,
+    refreshSession,
+  };
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {
