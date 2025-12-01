@@ -14,6 +14,7 @@ import { getUsers, createUser, updateUser } from "@/services/usersService";
 import { CreateUserPayload, User } from "@/models/user";
 import { UserRole, ROLES } from "@/config/roles";
 import { formatDate } from "@/utils/date";
+import { isValidEmail, isValidPassword } from "@/utils/validators";
 
 export default function AdminUsersPage() {
     const [users, setUsers] = useState<User[]>([]);
@@ -30,6 +31,7 @@ export default function AdminUsersPage() {
         isDuocStudent: false,
         role: "CLIENT" as UserRole,
     });
+    const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
     useEffect(() => {
         loadUsers();
@@ -47,8 +49,35 @@ export default function AdminUsersPage() {
         }
     };
 
+    const validateForm = () => {
+        const errors: Record<string, string> = {};
+
+        if (!formData.name.trim() || formData.name.length > 50) {
+            errors.name = "El nombre es requerido (máx. 50 caracteres)";
+        }
+
+
+        if (!formData.email.trim() || formData.email.length > 100) {
+            errors.email = "El email es requerido (máx. 100 caracteres)";
+        } else if (!isValidEmail(formData.email)) {
+            errors.email = "Email inválido. Solo @duoc.cl, @profesor.duoc.cl y @gmail.com";
+        }
+
+        if (!formData.password || !isValidPassword(formData.password)) {
+            errors.password = "La contraseña debe tener al menos 6 caracteres";
+        }
+
+        setFormErrors(errors);
+        return Object.keys(errors).length === 0;
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        if (!validateForm()) {
+            return;
+        }
+
         setIsSubmitting(true);
 
         try {
@@ -72,6 +101,7 @@ export default function AdminUsersPage() {
                 isDuocStudent: false,
                 role: "CLIENT",
             });
+            setFormErrors({});
             loadUsers();
         } catch (error: any) {
             toast.error(error.response?.data?.message || "Error al crear usuario");
@@ -138,25 +168,28 @@ export default function AdminUsersPage() {
 
                             <form onSubmit={handleSubmit} className="space-y-4">
                                 <FormField
-                                    label="Nombre completo"
+                                    label="Nombre"
                                     required
+                                    error={formErrors.name}
                                     inputProps={{
                                         name: "name",
                                         value: formData.name,
                                         onChange: (e) => setFormData({ ...formData, name: e.target.value }),
-                                        required: true,
+                                        maxLength: 50,
                                     }}
                                 />
+
 
                                 <FormField
                                     label="Email"
                                     type="email"
                                     required
+                                    error={formErrors.email}
                                     inputProps={{
                                         name: "email",
                                         value: formData.email,
                                         onChange: (e) => setFormData({ ...formData, email: e.target.value }),
-                                        required: true,
+                                        maxLength: 100,
                                     }}
                                 />
 
@@ -164,11 +197,11 @@ export default function AdminUsersPage() {
                                     label="Contraseña"
                                     type="password"
                                     required
+                                    error={formErrors.password}
                                     inputProps={{
                                         name: "password",
                                         value: formData.password,
                                         onChange: (e) => setFormData({ ...formData, password: e.target.value }),
-                                        required: true,
                                         minLength: 6,
                                     }}
                                 />
@@ -262,9 +295,6 @@ export default function AdminUsersPage() {
                                         <TableHead>Nombre</TableHead>
                                         <TableHead>Email</TableHead>
                                         <TableHead>Rol</TableHead>
-                                        <TableHead>Fecha Nacimiento</TableHead>
-                                        <TableHead>Duoc</TableHead>
-                                        <TableHead>Felices50</TableHead>
                                         <TableHead>Acciones</TableHead>
                                     </TableRow>
                                 </TableHeader>
@@ -279,9 +309,6 @@ export default function AdminUsersPage() {
                           {user.role}
                         </span>
                                             </TableCell>
-                                            <TableCell>{formatDate(user.dateOfBirth)}</TableCell>
-                                            <TableCell>{user.isDuocStudent ? "Sí" : "No"}</TableCell>
-                                            <TableCell>{user.hasFelices50 ? "Sí" : "No"}</TableCell>
                                             <TableCell>
                                                 <Button
                                                     variant="ghost"
@@ -312,13 +339,13 @@ export default function AdminUsersPage() {
                         {editingUser && (
                             <form onSubmit={handleUpdateSubmit} className="space-y-4">
                                 <FormField
-                                    label="Nombre completo"
+                                    label="Nombre"
                                     required
                                     inputProps={{
                                         name: "name",
                                         value: editingUser.name,
                                         onChange: (e) => setEditingUser({ ...editingUser, name: e.target.value }),
-                                        required: true,
+                                        maxLength: 50,
                                     }}
                                 />
 

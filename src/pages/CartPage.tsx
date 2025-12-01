@@ -8,6 +8,7 @@ import { useCart } from "@/hooks/useCart";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { createOrder } from "@/services/ordersService";
+import { reduceStock } from "@/services/stockService";
 import { toast } from "sonner";
 import { ShoppingBag, ArrowLeft, CheckCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -40,12 +41,21 @@ export default function CartPage() {
         totalPrice: item.product.price * item.quantity,
       }));
 
+      // Create order first
       await createOrder({
         items: orderItems,
         totalAmount: summary.subtotal,
         discountAmount: totalDiscounts,
         finalAmount: summary.total,
       });
+
+      // Reduce stock after successful order
+      await reduceStock(
+          items.map(item => ({
+            productId: item.product.id,
+            quantity: item.quantity,
+          }))
+      );
 
       clearCart();
       setOrderConfirmed(true);

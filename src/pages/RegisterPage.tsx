@@ -29,12 +29,17 @@ export default function RegisterPage() {
 
         if (!formData.name.trim()) {
             newErrors.name = "El nombre es requerido";
+        } else if (formData.name.length > 50) {
+            newErrors.name = "El nombre debe tener máximo 50 caracteres";
         }
+
 
         if (!formData.email.trim()) {
             newErrors.email = "El email es requerido";
+        } else if (formData.email.length > 100) {
+            newErrors.email = "El email debe tener máximo 100 caracteres";
         } else if (!isValidEmail(formData.email)) {
-            newErrors.email = "Email inválido";
+            newErrors.email = "Email inválido. Solo se permiten correos @duoc.cl, @profesor.duoc.cl y @gmail.com";
         }
 
         if (!formData.password) {
@@ -105,7 +110,7 @@ export default function RegisterPage() {
 
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <FormField
-                        label="Nombre Completo"
+                        label="Nombre"
                         required
                         error={errors.name}
                         inputProps={{
@@ -113,7 +118,8 @@ export default function RegisterPage() {
                             value: formData.name,
                             onChange: (e) =>
                                 setFormData({ ...formData, name: e.target.value }),
-                            placeholder: "Juan Pérez",
+                            placeholder: "Juan",
+                            maxLength: 50,
                         }}
                     />
 
@@ -127,7 +133,8 @@ export default function RegisterPage() {
                             value: formData.email,
                             onChange: (e) =>
                                 setFormData({ ...formData, email: e.target.value }),
-                            placeholder: "tu@email.com",
+                            placeholder: "tu@duoc.cl o tu@gmail.com",
+                            maxLength: 100,
                         }}
                     />
 

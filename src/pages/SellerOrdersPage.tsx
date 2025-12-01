@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Spinner } from "@/components/atoms/Spinner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Order, OrderStatus } from "@/models/order";
-import { getMyOrders } from "@/services/ordersService";
+import { getAllOrders } from "@/services/ordersService";
 import { formatCurrency } from "@/utils/discounts";
 import { formatDateTime } from "@/utils/formatters";
 import { Package, AlertCircle, ShoppingBag } from "lucide-react";
@@ -31,7 +31,7 @@ export default function SellerOrdersPage() {
             setIsLoading(true);
             setError(null);
             try {
-                const data = await getMyOrders();
+                const data = await getAllOrders();
                 setOrders(data);
             } catch (err) {
                 setError("Error al cargar los pedidos. Por favor intenta de nuevo.");

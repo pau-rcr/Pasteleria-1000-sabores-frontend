@@ -14,7 +14,7 @@ export interface RegisterPayload {
   name: string;
   email: string;
   password: string;
-  dateOfBirth: string;
+  dateOfBirth: string; // YYYY-MM-DD format
   isDuocStudent: boolean;
   code?: string;
 }
