@@ -1,0 +1,151 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Pastelería 1000 Sabores Design System */
+
+@layer base {
+  :root {
+    /* Brand colors - warm bakery palette */
+    --background: 37 100% 95%;  /* #FFF5E1 creamy pastel */
+    --foreground: 25 46% 24%;   /* #5D4037 dark brown */
+
+    --card: 0 0% 100%;
+    --card-foreground: 25 46% 24%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 25 46% 24%;
+
+    --primary: 25 59% 35%;      /* #8B4513 chocolate brown */
+    --primary-foreground: 37 100% 95%;
+
+    --secondary: 350 100% 88%;  /* #FFC0CB soft pink */
+    --secondary-foreground: 25 46% 24%;
+
+    --muted: 37 50% 92%;
+    --muted-foreground: 200 11% 70%;  /* #B0BEC5 light gray */
+
+    --accent: 350 100% 88%;     /* soft pink */
+    --accent-foreground: 25 46% 24%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 37 40% 88%;
+    --input: 37 40% 88%;
+    --ring: 25 59% 35%;
+
+    --radius: 0.75rem;
+
+    /* Custom design tokens */
+    --chocolate: 25 59% 35%;
+    --pink: 350 100% 88%;
+    --cream: 37 100% 95%;
+    --warm-gray: 37 20% 85%;
+    
+    /* Gradients */
+    --gradient-warm: linear-gradient(135deg, hsl(37 100% 95%), hsl(37 80% 90%));
+    --gradient-chocolate: linear-gradient(135deg, hsl(25 59% 45%), hsl(25 59% 35%));
+    --gradient-pink: linear-gradient(135deg, hsl(350 100% 90%), hsl(350 100% 85%));
+    
+    /* Shadows */
+    --shadow-soft: 0 4px 20px -4px hsl(25 59% 35% / 0.15);
+    --shadow-card: 0 8px 32px -8px hsl(25 59% 35% / 0.2);
+    --shadow-hover: 0 12px 40px -8px hsl(25 59% 35% / 0.25);
+    
+    /* Transitions */
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+
+  .dark {
+    --background: 25 25% 12%;
+    --foreground: 37 100% 95%;
+
+    --card: 25 20% 15%;
+    --card-foreground: 37 100% 95%;
+
+    --popover: 25 20% 15%;
+    --popover-foreground: 37 100% 95%;
+
+    --primary: 350 100% 88%;
+    --primary-foreground: 25 46% 24%;
+
+    --secondary: 25 30% 20%;
+    --secondary-foreground: 37 100% 95%;
+
+    --muted: 25 30% 20%;
+    --muted-foreground: 200 11% 70%;
+
+    --accent: 25 30% 20%;
+    --accent-foreground: 37 100% 95%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 37 100% 95%;
+
+    --border: 25 30% 20%;
+    --input: 25 30% 20%;
+    --ring: 350 100% 88%;
+    
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-body antialiased;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display;
+  }
+}
+
+@layer utilities {
+  .gradient-warm {
+    background: var(--gradient-warm);
+  }
+  
+  .gradient-chocolate {
+    background: var(--gradient-chocolate);
+  }
+  
+  .gradient-pink {
+    background: var(--gradient-pink);
+  }
+  
+  .shadow-soft {
+    box-shadow: var(--shadow-soft);
+  }
+  
+  .shadow-card {
+    box-shadow: var(--shadow-card);
+  }
+  
+  .shadow-hover {
+    box-shadow: var(--shadow-hover);
+  }
+  
+  .transition-smooth {
+    transition: var(--transition-smooth);
+  }
+}
