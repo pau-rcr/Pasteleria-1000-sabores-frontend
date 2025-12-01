@@ -5,17 +5,19 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { FormField } from "@/components/molecules/FormField";
-import { Package, Plus } from "lucide-react";
+import { Package, Plus, Pencil } from "lucide-react";
 import { toast } from "sonner";
-import { getProducts, createProduct } from "@/services/productsService";
-import { Product, CreateProductPayload } from "@/models/product";
+import { getProducts, createProduct, updateProduct } from "@/services/productsService";
+import { Product, CreateProductPayload, UpdateProductPayload } from "@/models/product";
 import { formatCurrency } from "@/utils/formatters";
 
 export default function AdminProductsPage() {
     const [products, setProducts] = useState<Product[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
+    const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [editingProduct, setEditingProduct] = useState<Product | null>(null);
     const [formData, setFormData] = useState({
         name: "",
         description: "",
@@ -61,6 +63,42 @@ export default function AdminProductsPage() {
                 toast.error("Ya existe un producto con ese nombre. Por favor, usa un nombre diferente.");
             } else if (errorMessage.includes("ORA-00001")) {
                 toast.error("Error: Producto duplicado o problema con la base de datos. Contacta al administrador del sistema.");
+            } else {
+                toast.error(errorMessage);
+            }
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    const handleEdit = (product: Product) => {
+        setEditingProduct(product);
+        setIsEditDialogOpen(true);
+    };
+
+    const handleUpdateSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!editingProduct) return;
+
+        setIsSubmitting(true);
+
+        try {
+            const payload: UpdateProductPayload = {
+                name: editingProduct.name,
+                description: editingProduct.description,
+                price: editingProduct.price,
+            };
+
+            await updateProduct(editingProduct.id, payload);
+            toast.success("Producto actualizado exitosamente");
+            setIsEditDialogOpen(false);
+            setEditingProduct(null);
+            loadProducts();
+        } catch (error: any) {
+            const errorMessage = error.response?.data?.message || error.message || "Error al actualizar producto";
+
+            if (errorMessage.includes("restricción única") || errorMessage.includes("constraint") || errorMessage.includes("Duplicate")) {
+                toast.error("Ya existe un producto con ese nombre. Por favor, usa un nombre diferente.");
             } else {
                 toast.error(errorMessage);
             }
@@ -181,6 +219,7 @@ export default function AdminProductsPage() {
                                         <TableHead>Nombre</TableHead>
                                         <TableHead>Descripción</TableHead>
                                         <TableHead className="text-right">Precio</TableHead>
+                                        <TableHead>Acciones</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -194,6 +233,15 @@ export default function AdminProductsPage() {
                                             <TableCell className="text-right font-semibold">
                                                 {formatCurrency(product.price)}
                                             </TableCell>
+                                            <TableCell>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() => handleEdit(product)}
+                                                >
+                                                    <Pencil className="w-4 h-4" />
+                                                </Button>
+                                            </TableCell>
                                         </TableRow>
                                     ))}
                                 </TableBody>
@@ -201,6 +249,77 @@ export default function AdminProductsPage() {
                         )}
                     </CardContent>
                 </Card>
+
+                {/* Edit Product Dialog */}
+                <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+                    <DialogContent className="max-w-md">
+                        <DialogHeader>
+                            <DialogTitle>Editar Producto</DialogTitle>
+                            <DialogDescription>
+                                Actualiza los datos del producto
+                            </DialogDescription>
+                        </DialogHeader>
+
+                        {editingProduct && (
+                            <form onSubmit={handleUpdateSubmit} className="space-y-4">
+                                <FormField
+                                    label="Nombre del producto"
+                                    required
+                                    inputProps={{
+                                        name: "name",
+                                        value: editingProduct.name,
+                                        onChange: (e) => setEditingProduct({ ...editingProduct, name: e.target.value }),
+                                        required: true,
+                                    }}
+                                />
+
+                                <FormField
+                                    label="Descripción"
+                                    required
+                                    multiline
+                                    textareaProps={{
+                                        name: "description",
+                                        value: editingProduct.description,
+                                        onChange: (e) => setEditingProduct({ ...editingProduct, description: e.target.value }),
+                                        required: true,
+                                        rows: 3,
+                                    }}
+                                />
+
+                                <FormField
+                                    label="Precio"
+                                    type="number"
+                                    required
+                                    inputProps={{
+                                        name: "price",
+                                        value: editingProduct.price.toString(),
+                                        onChange: (e) => setEditingProduct({ ...editingProduct, price: parseFloat(e.target.value) }),
+                                        required: true,
+                                        min: "0",
+                                        step: "0.01",
+                                    }}
+                                />
+
+                                <div className="flex justify-end gap-2 pt-4">
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        onClick={() => {
+                                            setIsEditDialogOpen(false);
+                                            setEditingProduct(null);
+                                        }}
+                                        disabled={isSubmitting}
+                                    >
+                                        Cancelar
+                                    </Button>
+                                    <Button type="submit" disabled={isSubmitting}>
+                                        {isSubmitting ? "Guardando..." : "Guardar Cambios"}
+                                    </Button>
+                                </div>
+                            </form>
+                        )}
+                    </DialogContent>
+                </Dialog>
             </div>
         </MainLayout>
     );

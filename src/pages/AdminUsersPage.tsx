@@ -8,9 +8,9 @@ import { FormField } from "@/components/molecules/FormField";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Users, Plus } from "lucide-react";
+import { Users, Plus, Pencil } from "lucide-react";
 import { toast } from "sonner";
-import { getUsers, createUser } from "@/services/usersService";
+import { getUsers, createUser, updateUser } from "@/services/usersService";
 import { CreateUserPayload, User } from "@/models/user";
 import { UserRole, ROLES } from "@/config/roles";
 import { formatDate } from "@/utils/date";
@@ -19,7 +19,9 @@ export default function AdminUsersPage() {
     const [users, setUsers] = useState<User[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
+    const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [editingUser, setEditingUser] = useState<User | null>(null);
     const [formData, setFormData] = useState({
         name: "",
         email: "",
@@ -73,6 +75,34 @@ export default function AdminUsersPage() {
             loadUsers();
         } catch (error: any) {
             toast.error(error.response?.data?.message || "Error al crear usuario");
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    const handleEdit = (user: User) => {
+        setEditingUser(user);
+        setIsEditDialogOpen(true);
+    };
+
+    const handleUpdateSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!editingUser) return;
+
+        setIsSubmitting(true);
+
+        try {
+            await updateUser(editingUser.id.toString(), {
+                name: editingUser.name,
+                dateOfBirth: editingUser.dateOfBirth,
+                isDuocStudent: editingUser.isDuocStudent,
+            });
+            toast.success("Usuario actualizado exitosamente");
+            setIsEditDialogOpen(false);
+            setEditingUser(null);
+            loadUsers();
+        } catch (error: any) {
+            toast.error(error.response?.data?.message || "Error al actualizar usuario");
         } finally {
             setIsSubmitting(false);
         }
@@ -235,6 +265,7 @@ export default function AdminUsersPage() {
                                         <TableHead>Fecha Nacimiento</TableHead>
                                         <TableHead>Duoc</TableHead>
                                         <TableHead>Felices50</TableHead>
+                                        <TableHead>Acciones</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -251,6 +282,15 @@ export default function AdminUsersPage() {
                                             <TableCell>{formatDate(user.dateOfBirth)}</TableCell>
                                             <TableCell>{user.isDuocStudent ? "Sí" : "No"}</TableCell>
                                             <TableCell>{user.hasFelices50 ? "Sí" : "No"}</TableCell>
+                                            <TableCell>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() => handleEdit(user)}
+                                                >
+                                                    <Pencil className="w-4 h-4" />
+                                                </Button>
+                                            </TableCell>
                                         </TableRow>
                                     ))}
                                 </TableBody>
@@ -258,6 +298,95 @@ export default function AdminUsersPage() {
                         )}
                     </CardContent>
                 </Card>
+
+                {/* Edit User Dialog */}
+                <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+                    <DialogContent className="max-w-md">
+                        <DialogHeader>
+                            <DialogTitle>Editar Usuario</DialogTitle>
+                            <DialogDescription>
+                                Actualiza los datos del usuario
+                            </DialogDescription>
+                        </DialogHeader>
+
+                        {editingUser && (
+                            <form onSubmit={handleUpdateSubmit} className="space-y-4">
+                                <FormField
+                                    label="Nombre completo"
+                                    required
+                                    inputProps={{
+                                        name: "name",
+                                        value: editingUser.name,
+                                        onChange: (e) => setEditingUser({ ...editingUser, name: e.target.value }),
+                                        required: true,
+                                    }}
+                                />
+
+                                <FormField
+                                    label="Email"
+                                    type="email"
+                                    inputProps={{
+                                        name: "email",
+                                        value: editingUser.email,
+                                        disabled: true,
+                                    }}
+                                />
+
+                                <FormField
+                                    label="Fecha de nacimiento"
+                                    type="date"
+                                    required
+                                    inputProps={{
+                                        name: "dateOfBirth",
+                                        value: editingUser.dateOfBirth,
+                                        onChange: (e) => setEditingUser({ ...editingUser, dateOfBirth: e.target.value }),
+                                        required: true,
+                                    }}
+                                />
+
+                                <div className="space-y-2">
+                                    <Label>Rol</Label>
+                                    <div className="px-3 py-2 rounded-md bg-muted text-sm">
+                                        {ROLES[editingUser.role]}
+                                    </div>
+                                    <p className="text-xs text-muted-foreground">
+                                        El rol no se puede modificar después de la creación
+                                    </p>
+                                </div>
+
+                                <div className="flex items-center space-x-2">
+                                    <Checkbox
+                                        id="editIsDuocStudent"
+                                        checked={editingUser.isDuocStudent}
+                                        onCheckedChange={(checked) =>
+                                            setEditingUser({ ...editingUser, isDuocStudent: checked as boolean })
+                                        }
+                                    />
+                                    <Label htmlFor="editIsDuocStudent">
+                                        ¿Es estudiante de Duoc?
+                                    </Label>
+                                </div>
+
+                                <div className="flex justify-end gap-2 pt-4">
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        onClick={() => {
+                                            setIsEditDialogOpen(false);
+                                            setEditingUser(null);
+                                        }}
+                                        disabled={isSubmitting}
+                                    >
+                                        Cancelar
+                                    </Button>
+                                    <Button type="submit" disabled={isSubmitting}>
+                                        {isSubmitting ? "Guardando..." : "Guardar Cambios"}
+                                    </Button>
+                                </div>
+                            </form>
+                        )}
+                    </DialogContent>
+                </Dialog>
             </div>
         </MainLayout>
     );
