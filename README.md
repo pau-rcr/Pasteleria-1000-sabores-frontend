@@ -85,6 +85,43 @@ npm run build
 ```
 ---
 
+## 🧪 Testing
+
+Este proyecto usa **Vitest** + **React Testing Library**.
+
+### Ejecutar todos los tests
+```bash
+npm run test
+npm run test:coverage
+```
+Se implementaron los tests unitarios para:
+
+- Lógica de descuentos (utils/discounts)
+
+- Contexto de carrito (context/CartContext)
+
+- componentes de UI clave (ProductCard, CartSummary, Footer)
+
+### 🛠️ Herramientas y buenas prácticas utilizadas
+
+- Vitest como test runner
+
+- React Testing Library para testear comportamiento real de usuario
+
+- Mocking de funciones y hooks
+
+- Snapshot testing para componentes estáticos
+
+- Tests con cobertura > 80%
+
+### 📊 Métricas de cobertura
+
+- **83.33% de líneas**
+
+- **82.92% de statements**
+
+---
+
 ## 🔌 Integración con Backend (Spring Boot)
 
 El frontend se comunica con un backend mediante API REST. Los endpoints esperados incluyen:
