@@ -27,6 +27,7 @@ export function Header() {
     if (user?.role === "ADMIN") {
       return [
         { to: "/", label: "Inicio" },
+        { to: "/admin/dashboard", label: "Dashboard" },
         { to: "/admin/usuarios", label: "Usuarios" },
         { to: "/admin/productos", label: "Productos" },
         { to: "/admin/pedidos", label: "Pedidos" },

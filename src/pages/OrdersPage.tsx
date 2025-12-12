@@ -13,9 +13,10 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 
 const getStatusBadge = (status: OrderStatus) => {
-  const variants: Record<OrderStatus, { label: string; variant: "default" | "secondary" | "destructive" }> = {
+  const variants: Record<OrderStatus, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
     PENDING: { label: "Pendiente", variant: "secondary" },
     PAID: { label: "Pagado", variant: "default" },
+    DELIVERED: { label: "Entregado", variant: "outline" },
     CANCELED: { label: "Cancelado", variant: "destructive" },
   };
 

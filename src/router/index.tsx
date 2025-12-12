@@ -14,6 +14,7 @@ import BlogDetailPage from "@/pages/BlogDetailPage";
 import AboutUsPage from "@/pages/AboutUsPage";
 import ContactPage from "@/pages/ContactPage";
 import OrdersPage from "@/pages/OrdersPage";
+import AdminDashboardPage from "@/pages/AdminDashboardPage";
 import AdminOrdersPage from "@/pages/AdminOrdersPage";
 import AdminUsersPage from "@/pages/AdminUsersPage";
 import AdminProductsPage from "@/pages/AdminProductsPage";
@@ -55,6 +56,14 @@ export function AppRoutes() {
             />
 
             {/* Protected Admin Routes */}
+             <Route
+                path="/admin/dashboard"
+                element={
+                    <ProtectedRoute allowedRoles={["ADMIN"]}>
+                        <AdminDashboardPage />
+                    </ProtectedRoute>
+                }
+            />
             <Route
                 path="/admin/usuarios"
                 element={

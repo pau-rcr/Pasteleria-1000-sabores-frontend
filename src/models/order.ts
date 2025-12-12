@@ -23,7 +23,7 @@ export interface DiscountDetails {
   amountBirthday: number;
 }
 
-export type OrderStatus = "PENDING" | "PAID" | "CANCELED";
+export type OrderStatus = "PENDING" | "PAID" | "DELIVERED" | "CANCELED";
 
 // Backend response structure
 export interface BackendOrderItem {
